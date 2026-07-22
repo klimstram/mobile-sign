@@ -40,13 +40,9 @@ python -m http.server --directory ../site 8008
 
 This generates a static `site/` folder with a deployable `app.json`, `index.html`, and Shinylive runtime assets. Open `http://localhost:8008` to test it locally, then publish the generated `site/` folder to GitHub Pages, Netlify, or another static host.
 
-For GitHub Pages, the simplest flow is:
+For GitHub Pages, the simplest setup is `Deploy from a branch` with `main` and `/docs`. The exported Shinylive site is already placed in the repository `docs/` folder, so GitHub Pages can serve it directly.
 
-1. Run the export command above.
-2. Commit the generated `site/` folder or copy its contents into the branch/folder that GitHub Pages serves.
-3. Set GitHub Pages to serve the published folder.
-
-If you use the included GitHub Actions workflow, set the repository Pages source to `Deploy from a branch`, then choose `gh-pages` and `/ (root)` in the repo settings. The workflow will rebuild and publish the static site automatically.
+If you prefer the Actions-based route, the included workflow can still publish a separate `gh-pages` branch, but the `main/docs` path is the easiest way to get the app running immediately.
 
 ## Architecture
 
