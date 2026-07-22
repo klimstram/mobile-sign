@@ -25,8 +25,6 @@ const state = {
 
 const draftStorageKey = "sign-return-pdf-draft-v1";
 const profileStorageKey = "sign-return-pdf-profile-v1";
-const shortcutSetupKey = "sign-return-pdf-shortcut-installed-v1";
-const shortcutInstallUrl = "https://www.icloud.com/shortcuts/REPLACE_WITH_YOUR_SHORTCUT_ID";
 
 const el = {};
 
@@ -90,28 +88,6 @@ function restoreDraftState() {
   }
 }
 
-function normalizeQueryValue(value) {
-  if (!value) return "";
-  return value.replace(/\+/g, " ").trim();
-}
-
-function applyInboundMailContext() {
-  const params = new URLSearchParams(window.location.search || "");
-  const hasIncomingFrom = params.has("from") || params.has("sender");
-  const hasIncomingSubject = params.has("subject") || params.has("subj");
-  const hasMailContext = hasIncomingFrom || hasIncomingSubject;
-  if (!hasMailContext) return;
-
-  const incomingFrom = normalizeQueryValue(params.get("from") || params.get("sender") || "");
-  const incomingSubject = normalizeQueryValue(params.get("subject") || params.get("subj") || "");
-
-  // Always overwrite fields when context is supplied so each message can provide fresh values.
-  el.emailFrom.value = incomingFrom;
-  el.emailSubject.value = incomingSubject;
-  setStatus("Email details were updated from this Shortcut launch.", "success");
-  saveDraftState();
-}
-
 function clearDraftState() {
   try {
     localStorage.removeItem(draftStorageKey);
@@ -172,61 +148,6 @@ function clearProfileState() {
     el.profileStatus.textContent = "Could not clear saved profile in this browser.";
     setStatus("Could not clear saved profile in this browser.", "error");
   }
-}
-
-function isShortcutConfigured() {
-  return !shortcutInstallUrl.includes("REPLACE_WITH_YOUR_SHORTCUT_ID");
-}
-
-function isShortcutInstalled() {
-  try {
-    return localStorage.getItem(shortcutSetupKey) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function setShortcutInstalled(installed) {
-  try {
-    if (installed) {
-      localStorage.setItem(shortcutSetupKey, "1");
-    } else {
-      localStorage.removeItem(shortcutSetupKey);
-    }
-  } catch {
-    // Ignore storage failures; onboarding can still be used for this session.
-  }
-}
-
-function updateShortcutOnboarding() {
-  const installed = isShortcutInstalled();
-  el.shortcutOnboarding.classList.toggle("hidden", installed);
-  if (installed) {
-    el.shortcutStatus.textContent = "Shortcut setup is complete on this device.";
-    return;
-  }
-
-  if (isShortcutConfigured()) {
-    el.shortcutStatus.textContent = "Install once, then return and tap \"I installed it\".";
-  } else {
-    el.shortcutStatus.textContent = "Shortcut link not configured yet. Ask your admin for the iCloud Shortcut URL.";
-  }
-}
-
-function installShortcut() {
-  if (!isShortcutConfigured()) {
-    el.shortcutStatus.textContent = "Shortcut link not configured yet. Ask your admin for the iCloud Shortcut URL.";
-    setStatus("Shortcut install link is not configured yet.", "error");
-    return;
-  }
-  window.open(shortcutInstallUrl, "_blank", "noopener");
-  el.shortcutStatus.textContent = "After installation, return here and tap \"I installed it\".";
-}
-
-function confirmShortcutInstalled() {
-  setShortcutInstalled(true);
-  updateShortcutOnboarding();
-  setStatus("Shortcut marked as installed on this device.", "success");
 }
 
 function escapeFilename(name) {
@@ -807,7 +728,6 @@ function cacheElements() {
   [
     "pdfFile", "fileStatus", "fullName", "signDate", "customText", "emailFrom", "emailSubject",
     "saveProfileBtn", "clearProfileBtn", "profileStatus",
-    "shortcutOnboarding", "installShortcutBtn", "confirmShortcutBtn", "shortcutStatus",
     "signatureCanvas", "clearSignatureBtn", "saveSignatureBtn", "signatureStatus",
     "documentPanel", "prevPageBtn", "nextPageBtn", "pageIndicator",
     "selectionControls", "smallerBtn", "largerBtn", "deleteItemBtn",
@@ -818,8 +738,6 @@ function cacheElements() {
 
 function wireEvents() {
   el.pdfFile.addEventListener("change", (event) => loadPdf(event.target.files?.[0]));
-  el.installShortcutBtn.addEventListener("click", installShortcut);
-  el.confirmShortcutBtn.addEventListener("click", confirmShortcutInstalled);
   el.saveProfileBtn.addEventListener("click", saveProfileState);
   el.clearProfileBtn.addEventListener("click", clearProfileState);
   el.clearSignatureBtn.addEventListener("click", clearSignature);
@@ -876,10 +794,8 @@ function wireEvents() {
 
 function init() {
   cacheElements();
-  updateShortcutOnboarding();
   restoreDraftState();
   restoreProfileState();
-  applyInboundMailContext();
   setTodayIfNeeded();
   resizeSignatureCanvas(false);
   wireEvents();

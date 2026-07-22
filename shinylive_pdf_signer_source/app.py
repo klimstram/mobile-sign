@@ -26,26 +26,6 @@ app_ui = ui.page_fluid(
         class_="hero",
     ),
     ui.div(
-        ui.h2("One-time setup (iPhone)", class_="section-title"),
-        ui.p(
-            "Install the optional iOS Shortcut once to speed up returning signed PDFs to email threads.",
-            class_="muted compact-help",
-        ),
-        ui.div(
-            ui.tags.button("Install Shortcut", id="installShortcutBtn", type="button", class_="btn btn-primary"),
-            ui.tags.button("I installed it", id="confirmShortcutBtn", type="button", class_="btn btn-secondary"),
-            class_="button-row",
-        ),
-        ui.div(
-            "If install does not open, ask your admin for the Shortcut link and open it in Safari.",
-            id="shortcutStatus",
-            class_="muted status-line",
-            role="status",
-        ),
-        id="shortcutOnboarding",
-        class_="panel onboarding-panel hidden",
-    ),
-    ui.div(
         ui.div(
             ui.h2("1. Open the PDF", class_="section-title"),
             ui.tags.label("Choose a PDF", for_="pdfFile", class_="field-label"),
@@ -195,7 +175,7 @@ app_ui = ui.page_fluid(
                 class_="muted",
             ),
             ui.tags.p(
-                "Sender and subject can be different each time. Launching from the Shortcut updates these fields for the current message.",
+                "Sender and subject can be different each time. Update these fields manually for the current message when needed.",
                 class_="muted",
             ),
             class_="workflow-note",
