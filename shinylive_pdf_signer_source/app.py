@@ -150,7 +150,7 @@ app_ui = ui.page_fluid(
         id="documentPanel",
         class_="panel document-panel hidden",
     ),
-    ui.footer(
+    ui.tags.footer(
         "This adds visible signature marks; it is not a certificate-based cryptographic digital signature.",
         class_="footer-note",
     ),
