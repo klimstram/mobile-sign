@@ -70,6 +70,12 @@ body {
   gap: 14px;
 }
 
+.onboarding-panel {
+  margin-bottom: 14px;
+  border-style: solid;
+  border-width: 1px;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid rgba(216, 222, 233, 0.9);

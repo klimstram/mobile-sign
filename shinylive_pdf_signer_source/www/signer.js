@@ -24,6 +24,9 @@ const state = {
 };
 
 const draftStorageKey = "sign-return-pdf-draft-v1";
+const profileStorageKey = "sign-return-pdf-profile-v1";
+const shortcutSetupKey = "sign-return-pdf-shortcut-installed-v1";
+const shortcutInstallUrl = "https://www.icloud.com/shortcuts/REPLACE_WITH_YOUR_SHORTCUT_ID";
 
 const el = {};
 
@@ -45,6 +48,15 @@ function readDraftState() {
   }
 }
 
+function readProfileState() {
+  try {
+    const raw = localStorage.getItem(profileStorageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 function saveDraftState() {
   try {
     localStorage.setItem(
@@ -53,6 +65,8 @@ function saveDraftState() {
         fullName: el.fullName.value,
         signDate: el.signDate.value,
         customText: el.customText.value,
+        emailFrom: el.emailFrom.value,
+        emailSubject: el.emailSubject.value,
         signatureDataUrl: state.signatureDataUrl,
       }),
     );
@@ -68,10 +82,34 @@ function restoreDraftState() {
   if (typeof draft.fullName === "string") el.fullName.value = draft.fullName;
   if (typeof draft.signDate === "string") el.signDate.value = draft.signDate;
   if (typeof draft.customText === "string") el.customText.value = draft.customText;
+  if (typeof draft.emailFrom === "string") el.emailFrom.value = draft.emailFrom;
+  if (typeof draft.emailSubject === "string") el.emailSubject.value = draft.emailSubject;
   if (typeof draft.signatureDataUrl === "string" && draft.signatureDataUrl) {
     state.signatureDataUrl = draft.signatureDataUrl;
     el.signatureStatus.textContent = "Saved signature restored.";
   }
+}
+
+function normalizeQueryValue(value) {
+  if (!value) return "";
+  return value.replace(/\+/g, " ").trim();
+}
+
+function applyInboundMailContext() {
+  const params = new URLSearchParams(window.location.search || "");
+  const hasIncomingFrom = params.has("from") || params.has("sender");
+  const hasIncomingSubject = params.has("subject") || params.has("subj");
+  const hasMailContext = hasIncomingFrom || hasIncomingSubject;
+  if (!hasMailContext) return;
+
+  const incomingFrom = normalizeQueryValue(params.get("from") || params.get("sender") || "");
+  const incomingSubject = normalizeQueryValue(params.get("subject") || params.get("subj") || "");
+
+  // Always overwrite fields when context is supplied so each message can provide fresh values.
+  el.emailFrom.value = incomingFrom;
+  el.emailSubject.value = incomingSubject;
+  setStatus("Email details were updated from this Shortcut launch.", "success");
+  saveDraftState();
 }
 
 function clearDraftState() {
@@ -80,6 +118,115 @@ function clearDraftState() {
   } catch {
     // Ignore storage failures; the app still works without persistence.
   }
+}
+
+function saveProfileState() {
+  const fullName = el.fullName.value.trim();
+  if (!fullName) {
+    el.profileStatus.textContent = "Enter your full name before saving your profile.";
+    setStatus("Enter your full name, then save profile.", "error");
+    return;
+  }
+  if (!state.signatureDataUrl) {
+    el.profileStatus.textContent = "Save a signature first, then save your profile.";
+    setStatus("Draw and save your signature first.", "error");
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      profileStorageKey,
+      JSON.stringify({
+        fullName,
+        signatureDataUrl: state.signatureDataUrl,
+      }),
+    );
+    el.profileStatus.textContent = "Saved locally on this device.";
+    setStatus("Profile saved for later use on this device.", "success");
+  } catch {
+    el.profileStatus.textContent = "Could not save profile on this device/browser.";
+    setStatus("Could not save profile on this device/browser.", "error");
+  }
+}
+
+function restoreProfileState() {
+  const profile = readProfileState();
+  if (!profile) return;
+
+  if (!el.fullName.value && typeof profile.fullName === "string") {
+    el.fullName.value = profile.fullName;
+  }
+  if (!state.signatureDataUrl && typeof profile.signatureDataUrl === "string" && profile.signatureDataUrl) {
+    state.signatureDataUrl = profile.signatureDataUrl;
+    el.signatureStatus.textContent = "Saved signature restored.";
+  }
+  el.profileStatus.textContent = "Saved signer profile is loaded.";
+}
+
+function clearProfileState() {
+  try {
+    localStorage.removeItem(profileStorageKey);
+    el.profileStatus.textContent = "Saved signer profile removed from this device.";
+    setStatus("Saved signer profile removed.", "success");
+  } catch {
+    el.profileStatus.textContent = "Could not clear saved profile in this browser.";
+    setStatus("Could not clear saved profile in this browser.", "error");
+  }
+}
+
+function isShortcutConfigured() {
+  return !shortcutInstallUrl.includes("REPLACE_WITH_YOUR_SHORTCUT_ID");
+}
+
+function isShortcutInstalled() {
+  try {
+    return localStorage.getItem(shortcutSetupKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function setShortcutInstalled(installed) {
+  try {
+    if (installed) {
+      localStorage.setItem(shortcutSetupKey, "1");
+    } else {
+      localStorage.removeItem(shortcutSetupKey);
+    }
+  } catch {
+    // Ignore storage failures; onboarding can still be used for this session.
+  }
+}
+
+function updateShortcutOnboarding() {
+  const installed = isShortcutInstalled();
+  el.shortcutOnboarding.classList.toggle("hidden", installed);
+  if (installed) {
+    el.shortcutStatus.textContent = "Shortcut setup is complete on this device.";
+    return;
+  }
+
+  if (isShortcutConfigured()) {
+    el.shortcutStatus.textContent = "Install once, then return and tap \"I installed it\".";
+  } else {
+    el.shortcutStatus.textContent = "Shortcut link not configured yet. Ask your admin for the iCloud Shortcut URL.";
+  }
+}
+
+function installShortcut() {
+  if (!isShortcutConfigured()) {
+    el.shortcutStatus.textContent = "Shortcut link not configured yet. Ask your admin for the iCloud Shortcut URL.";
+    setStatus("Shortcut install link is not configured yet.", "error");
+    return;
+  }
+  window.open(shortcutInstallUrl, "_blank", "noopener");
+  el.shortcutStatus.textContent = "After installation, return here and tap \"I installed it\".";
+}
+
+function confirmShortcutInstalled() {
+  setShortcutInstalled(true);
+  updateShortcutOnboarding();
+  setStatus("Shortcut marked as installed on this device.", "success");
 }
 
 function escapeFilename(name) {
@@ -454,10 +601,12 @@ function attachDrag(node, item) {
     event.preventDefault();
     event.stopPropagation();
     state.selectedId = item.id;
-    renderPlacements();
+    el.overlayLayer
+      .querySelectorAll(".placed-item.selected")
+      .forEach((selectedNode) => selectedNode.classList.remove("selected"));
+    node.classList.add("selected");
     updateSelectionControls();
-    const currentNode = el.overlayLayer.querySelector(`[data-id="${item.id}"]`);
-    currentNode?.setPointerCapture?.(event.pointerId);
+    node.setPointerCapture?.(event.pointerId);
     start = {
       pointerX: event.clientX,
       pointerY: event.clientY,
@@ -624,7 +773,10 @@ async function sharePrepared() {
   try {
     if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
       await navigator.share({ files: [file], title: filename });
-      setStatus("Share sheet opened. Choose Mail or Save to Files.", "success");
+      setStatus(
+        "Share sheet opened. For same-thread replies, choose Save to Files, then attach it from Reply in Mail.",
+        "success",
+      );
     } else {
       downloadPrepared();
       setStatus("File sharing is unavailable in this browser, so the PDF was downloaded instead.");
@@ -653,7 +805,9 @@ function downloadPrepared() {
 // ---------------- Wiring ----------------
 function cacheElements() {
   [
-    "pdfFile", "fileStatus", "fullName", "signDate", "customText",
+    "pdfFile", "fileStatus", "fullName", "signDate", "customText", "emailFrom", "emailSubject",
+    "saveProfileBtn", "clearProfileBtn", "profileStatus",
+    "shortcutOnboarding", "installShortcutBtn", "confirmShortcutBtn", "shortcutStatus",
     "signatureCanvas", "clearSignatureBtn", "saveSignatureBtn", "signatureStatus",
     "documentPanel", "prevPageBtn", "nextPageBtn", "pageIndicator",
     "selectionControls", "smallerBtn", "largerBtn", "deleteItemBtn",
@@ -664,6 +818,10 @@ function cacheElements() {
 
 function wireEvents() {
   el.pdfFile.addEventListener("change", (event) => loadPdf(event.target.files?.[0]));
+  el.installShortcutBtn.addEventListener("click", installShortcut);
+  el.confirmShortcutBtn.addEventListener("click", confirmShortcutInstalled);
+  el.saveProfileBtn.addEventListener("click", saveProfileState);
+  el.clearProfileBtn.addEventListener("click", clearProfileState);
   el.clearSignatureBtn.addEventListener("click", clearSignature);
   el.saveSignatureBtn.addEventListener("click", saveSignature);
 
@@ -699,7 +857,7 @@ function wireEvents() {
   el.shareBtn.addEventListener("click", sharePrepared);
   el.downloadBtn.addEventListener("click", downloadPrepared);
 
-  [el.fullName, el.signDate, el.customText].forEach((input) => {
+  [el.fullName, el.signDate, el.customText, el.emailFrom, el.emailSubject].forEach((input) => {
     input.addEventListener("input", () => {
       invalidatePrepared();
       saveDraftState();
@@ -718,7 +876,10 @@ function wireEvents() {
 
 function init() {
   cacheElements();
+  updateShortcutOnboarding();
   restoreDraftState();
+  restoreProfileState();
+  applyInboundMailContext();
   setTodayIfNeeded();
   resizeSignatureCanvas(false);
   wireEvents();

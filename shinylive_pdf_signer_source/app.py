@@ -26,6 +26,26 @@ app_ui = ui.page_fluid(
         class_="hero",
     ),
     ui.div(
+        ui.h2("One-time setup (iPhone)", class_="section-title"),
+        ui.p(
+            "Install the optional iOS Shortcut once to speed up returning signed PDFs to email threads.",
+            class_="muted compact-help",
+        ),
+        ui.div(
+            ui.tags.button("Install Shortcut", id="installShortcutBtn", type="button", class_="btn btn-primary"),
+            ui.tags.button("I installed it", id="confirmShortcutBtn", type="button", class_="btn btn-secondary"),
+            class_="button-row",
+        ),
+        ui.div(
+            "If install does not open, ask your admin for the Shortcut link and open it in Safari.",
+            id="shortcutStatus",
+            class_="muted status-line",
+            role="status",
+        ),
+        id="shortcutOnboarding",
+        class_="panel onboarding-panel hidden",
+    ),
+    ui.div(
         ui.div(
             ui.h2("1. Open the PDF", class_="section-title"),
             ui.tags.label("Choose a PDF", for_="pdfFile", class_="field-label"),
@@ -71,6 +91,35 @@ app_ui = ui.page_fluid(
                 placeholder="e.g., Approved or Initials",
                 class_="form-control",
             ),
+            ui.div(
+                ui.div(
+                    ui.tags.label("Email sender (optional)", for_="emailFrom", class_="field-label"),
+                    ui.tags.input(
+                        id="emailFrom",
+                        type="text",
+                        placeholder="name@example.com",
+                        class_="form-control",
+                    ),
+                    class_="field-group",
+                ),
+                ui.div(
+                    ui.tags.label("Email subject (optional)", for_="emailSubject", class_="field-label"),
+                    ui.tags.input(
+                        id="emailSubject",
+                        type="text",
+                        placeholder="Re: Agreement",
+                        class_="form-control",
+                    ),
+                    class_="field-group",
+                ),
+                class_="field-grid",
+            ),
+            ui.div(
+                ui.tags.button("Save name + signature for later", id="saveProfileBtn", type="button", class_="btn btn-secondary"),
+                ui.tags.button("Clear saved profile", id="clearProfileBtn", type="button", class_="btn btn-secondary"),
+                class_="button-row",
+            ),
+            ui.div("Saved profile stays only on this device/browser.", id="profileStatus", class_="muted status-line", role="status"),
             class_="panel",
         ),
         ui.div(
@@ -137,12 +186,16 @@ app_ui = ui.page_fluid(
         ui.tags.details(
             ui.tags.summary("How to return it to the same email thread"),
             ui.tags.ol(
-                ui.tags.li("Tap “Share or Save” and choose “Save to Files.”"),
+                ui.tags.li("Tap “Share or Save” and choose “Save to Files” (Recents works best)."),
                 ui.tags.li("Return to Mail and open the original message."),
-                ui.tags.li("Tap Reply, then attach the signed PDF from Files."),
+                ui.tags.li("Tap Reply, then attach the signed PDF from Recents/Files."),
             ),
             ui.tags.p(
                 "Choosing Mail in the share sheet starts a new draft. iPhone browsers cannot directly insert a file into an already-open reply thread.",
+                class_="muted",
+            ),
+            ui.tags.p(
+                "Sender and subject can be different each time. Launching from the Shortcut updates these fields for the current message.",
                 class_="muted",
             ),
             class_="workflow-note",
