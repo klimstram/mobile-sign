@@ -46,7 +46,7 @@ For GitHub Pages, the simplest flow is:
 2. Commit the generated `site/` folder or copy its contents into the branch/folder that GitHub Pages serves.
 3. Set GitHub Pages to serve the published folder.
 
-If you use the included GitHub Actions workflow, set the repository Pages source to `GitHub Actions` in the repo settings and push to `main`. The workflow will rebuild and publish the static site automatically.
+If you use the included GitHub Actions workflow, set the repository Pages source to `Deploy from a branch`, then choose `gh-pages` and `/ (root)` in the repo settings. The workflow will rebuild and publish the static site automatically.
 
 ## Architecture
 
