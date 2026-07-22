@@ -34,15 +34,15 @@ shiny run --reload app.py
 
 ```bash
 python -m pip install shinylive
-shinylive export . ../site
-python -m http.server --directory ../site 8008
+shinylive export . ../docs
+python -m http.server --directory ../docs 8008
 ```
 
-This generates a static `site/` folder with a deployable `app.json`, `index.html`, and Shinylive runtime assets. Open `http://localhost:8008` to test it locally, then publish the generated `site/` folder to GitHub Pages, Netlify, or another static host.
+This generates the deployable static site directly into the repository `docs/` folder, including `app.json`, `index.html`, and the Shinylive runtime assets. Open `http://localhost:8008` to test it locally.
 
-For GitHub Pages, the simplest setup is `Deploy from a branch` with `main` and `/docs`. The exported Shinylive site is already placed in the repository `docs/` folder, so GitHub Pages can serve it directly.
+For GitHub Pages, use `Deploy from a branch` with `main` and `/docs`. GitHub Pages will serve the exported app directly from that folder.
 
-If you prefer the Actions-based route, the included workflow can still publish a separate `gh-pages` branch, but the `main/docs` path is the easiest way to get the app running immediately.
+The included workflow also refreshes `docs/` automatically when files under `shinylive_pdf_signer_source/` change on `main`, so deployments stay aligned with the source app.
 
 ## Architecture
 
