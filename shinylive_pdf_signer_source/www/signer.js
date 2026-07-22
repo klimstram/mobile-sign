@@ -23,6 +23,8 @@ const state = {
   preparedUrl: null,
 };
 
+const draftStorageKey = "sign-return-pdf-draft-v1";
+
 const el = {};
 
 function byId(id) {
@@ -32,6 +34,52 @@ function byId(id) {
 function setStatus(message, kind = "") {
   el.appStatus.textContent = message;
   el.appStatus.className = `status-box${kind ? ` ${kind}` : ""}`;
+}
+
+function readDraftState() {
+  try {
+    const raw = localStorage.getItem(draftStorageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraftState() {
+  try {
+    localStorage.setItem(
+      draftStorageKey,
+      JSON.stringify({
+        fullName: el.fullName.value,
+        signDate: el.signDate.value,
+        customText: el.customText.value,
+        signatureDataUrl: state.signatureDataUrl,
+      }),
+    );
+  } catch {
+    // Ignore storage failures; the app still works without persistence.
+  }
+}
+
+function restoreDraftState() {
+  const draft = readDraftState();
+  if (!draft) return;
+
+  if (typeof draft.fullName === "string") el.fullName.value = draft.fullName;
+  if (typeof draft.signDate === "string") el.signDate.value = draft.signDate;
+  if (typeof draft.customText === "string") el.customText.value = draft.customText;
+  if (typeof draft.signatureDataUrl === "string" && draft.signatureDataUrl) {
+    state.signatureDataUrl = draft.signatureDataUrl;
+    el.signatureStatus.textContent = "Saved signature restored.";
+  }
+}
+
+function clearDraftState() {
+  try {
+    localStorage.removeItem(draftStorageKey);
+  } catch {
+    // Ignore storage failures; the app still works without persistence.
+  }
 }
 
 function escapeFilename(name) {
@@ -148,6 +196,7 @@ function clearSignature() {
   sigHasInk = false;
   state.signatureDataUrl = null;
   el.signatureStatus.textContent = "Draw above, then tap “Use this signature.”";
+  saveDraftState();
   invalidatePrepared();
 }
 
@@ -202,6 +251,7 @@ function saveSignature() {
   state.signatureDataUrl = dataUrl;
   el.signatureStatus.textContent = "Signature saved and ready to place.";
   setStatus("Signature saved. Open a PDF or place it on the current page.", "success");
+  saveDraftState();
   invalidatePrepared();
 }
 
@@ -650,7 +700,10 @@ function wireEvents() {
   el.downloadBtn.addEventListener("click", downloadPrepared);
 
   [el.fullName, el.signDate, el.customText].forEach((input) => {
-    input.addEventListener("input", invalidatePrepared);
+    input.addEventListener("input", () => {
+      invalidatePrepared();
+      saveDraftState();
+    });
   });
 
   let resizeTimer;
@@ -665,9 +718,11 @@ function wireEvents() {
 
 function init() {
   cacheElements();
+  restoreDraftState();
   setTodayIfNeeded();
   resizeSignatureCanvas(false);
   wireEvents();
+  saveDraftState();
   setStatus("Choose a PDF, enter your details, and draw your signature.");
 }
 
