@@ -39,7 +39,23 @@ app_ui = ui.page_fluid(
             class_="panel",
         ),
         ui.div(
-            ui.h2("2. Your details", class_="section-title"),
+            ui.h2("2. Draw your signature", class_="section-title"),
+            ui.div(
+                ui.tags.canvas(id="signatureCanvas", **{"aria-label": "Signature drawing area"}),
+                class_="signature-wrap",
+            ),
+            ui.div(
+                ui.tags.button("Clear", id="clearSignatureBtn", type="button", class_="btn btn-secondary"),
+                ui.tags.button("Use this signature", id="saveSignatureBtn", type="button", class_="btn btn-primary"),
+                ui.tags.button("Load saved signature", id="loadSavedSignatureBtn", type="button", class_="btn btn-secondary btn-small hidden"),
+                class_="button-row",
+            ),
+            ui.div("Saved signature loaded.", id="savedSignatureBadge", class_="muted status-line hidden", role="status"),
+            ui.div("Draw above, then tap “Use this signature.”", id="signatureStatus", class_="muted status-line", role="status"),
+            class_="panel",
+        ),
+        ui.div(
+            ui.h2("3. Your details", class_="section-title"),
             ui.div(
                 ui.div(
                     ui.tags.label("Full name", for_="fullName", class_="field-label"),
@@ -100,20 +116,6 @@ app_ui = ui.page_fluid(
                 class_="button-row",
             ),
             ui.div("Saved profile stays only on this device/browser.", id="profileStatus", class_="muted status-line", role="status"),
-            class_="panel",
-        ),
-        ui.div(
-            ui.h2("3. Draw your signature", class_="section-title"),
-            ui.div(
-                ui.tags.canvas(id="signatureCanvas", **{"aria-label": "Signature drawing area"}),
-                class_="signature-wrap",
-            ),
-            ui.div(
-                ui.tags.button("Clear", id="clearSignatureBtn", type="button", class_="btn btn-secondary"),
-                ui.tags.button("Use this signature", id="saveSignatureBtn", type="button", class_="btn btn-primary"),
-                class_="button-row",
-            ),
-            ui.div("Draw above, then tap “Use this signature.”", id="signatureStatus", class_="muted status-line", role="status"),
             class_="panel",
         ),
         class_="setup-grid",

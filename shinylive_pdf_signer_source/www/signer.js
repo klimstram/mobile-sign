@@ -84,8 +84,20 @@ function restoreDraftState() {
   if (typeof draft.emailSubject === "string") el.emailSubject.value = draft.emailSubject;
   if (typeof draft.signatureDataUrl === "string" && draft.signatureDataUrl) {
     state.signatureDataUrl = draft.signatureDataUrl;
-    el.signatureStatus.textContent = "Saved signature restored.";
+    el.signatureStatus.textContent = "Saved signature loaded. You can use it or draw a new one.";
   }
+}
+
+function getStoredSignatureDataUrl() {
+  const draft = readDraftState();
+  if (typeof draft?.signatureDataUrl === "string" && draft.signatureDataUrl) {
+    return draft.signatureDataUrl;
+  }
+  const profile = readProfileState();
+  if (typeof profile?.signatureDataUrl === "string" && profile.signatureDataUrl) {
+    return profile.signatureDataUrl;
+  }
+  return null;
 }
 
 function clearDraftState() {
@@ -134,7 +146,7 @@ function restoreProfileState() {
   }
   if (!state.signatureDataUrl && typeof profile.signatureDataUrl === "string" && profile.signatureDataUrl) {
     state.signatureDataUrl = profile.signatureDataUrl;
-    el.signatureStatus.textContent = "Saved signature restored.";
+    el.signatureStatus.textContent = "Saved signature loaded. You can use it or draw a new one.";
   }
   el.profileStatus.textContent = "Saved signer profile is loaded.";
 }
@@ -144,6 +156,7 @@ function clearProfileState() {
     localStorage.removeItem(profileStorageKey);
     el.profileStatus.textContent = "Saved signer profile removed from this device.";
     setStatus("Saved signer profile removed.", "success");
+    updateSavedSignatureUi(Boolean(state.signatureDataUrl));
   } catch {
     el.profileStatus.textContent = "Could not clear saved profile in this browser.";
     setStatus("Could not clear saved profile in this browser.", "error");
@@ -266,6 +279,58 @@ function clearSignature() {
   el.signatureStatus.textContent = "Draw above, then tap “Use this signature.”";
   saveDraftState();
   invalidatePrepared();
+  updateSavedSignatureUi(false);
+}
+
+function renderSignaturePreviewFromSaved() {
+  if (!sigCtx || !state.signatureDataUrl) return;
+
+  const image = new Image();
+  image.onload = () => {
+    const canvas = el.signatureCanvas;
+    const dpr = Math.max(window.devicePixelRatio || 1, 1);
+    const displayWidth = canvas.width / dpr;
+    const displayHeight = canvas.height / dpr;
+    sigCtx.clearRect(0, 0, displayWidth, displayHeight);
+
+    const margin = 10;
+    const maxWidth = Math.max(20, displayWidth - margin * 2);
+    const maxHeight = Math.max(20, displayHeight - margin * 2);
+    const scale = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    const x = (displayWidth - drawWidth) / 2;
+    const y = (displayHeight - drawHeight) / 2;
+
+    sigCtx.drawImage(image, x, y, drawWidth, drawHeight);
+    sigHasInk = true;
+  };
+  image.onerror = () => {
+    // Keep working even if preview cannot be rendered.
+  };
+  image.src = state.signatureDataUrl;
+}
+
+function updateSavedSignatureUi(isLoaded) {
+  const hasSaved = Boolean(getStoredSignatureDataUrl());
+  el.loadSavedSignatureBtn.classList.toggle("hidden", !hasSaved);
+  el.savedSignatureBadge.classList.toggle("hidden", !isLoaded);
+}
+
+function loadSavedSignature() {
+  const saved = getStoredSignatureDataUrl();
+  if (!saved) {
+    el.signatureStatus.textContent = "No saved signature found on this device.";
+    updateSavedSignatureUi(false);
+    return;
+  }
+  state.signatureDataUrl = saved;
+  renderSignaturePreviewFromSaved();
+  el.signatureStatus.textContent = "Saved signature loaded. You can use it or draw a new one.";
+  setStatus("Saved signature loaded.", "success");
+  saveDraftState();
+  invalidatePrepared();
+  updateSavedSignatureUi(true);
 }
 
 function trimmedSignatureDataUrl() {
@@ -321,6 +386,7 @@ function saveSignature() {
   setStatus("Signature saved. Open a PDF or place it on the current page.", "success");
   saveDraftState();
   invalidatePrepared();
+  updateSavedSignatureUi(true);
 }
 
 // ---------------- PDF rendering ----------------
@@ -728,7 +794,7 @@ function cacheElements() {
   [
     "pdfFile", "fileStatus", "fullName", "signDate", "customText", "emailFrom", "emailSubject",
     "saveProfileBtn", "clearProfileBtn", "profileStatus",
-    "signatureCanvas", "clearSignatureBtn", "saveSignatureBtn", "signatureStatus",
+    "signatureCanvas", "clearSignatureBtn", "saveSignatureBtn", "loadSavedSignatureBtn", "savedSignatureBadge", "signatureStatus",
     "documentPanel", "prevPageBtn", "nextPageBtn", "pageIndicator",
     "selectionControls", "smallerBtn", "largerBtn", "deleteItemBtn",
     "pdfStage", "pdfCanvas", "overlayLayer", "undoBtn", "prepareBtn",
@@ -742,6 +808,7 @@ function wireEvents() {
   el.clearProfileBtn.addEventListener("click", clearProfileState);
   el.clearSignatureBtn.addEventListener("click", clearSignature);
   el.saveSignatureBtn.addEventListener("click", saveSignature);
+  el.loadSavedSignatureBtn.addEventListener("click", loadSavedSignature);
 
   el.signatureCanvas.addEventListener("pointerdown", startSignature);
   el.signatureCanvas.addEventListener("pointermove", moveSignature);
@@ -798,9 +865,15 @@ function init() {
   restoreProfileState();
   setTodayIfNeeded();
   resizeSignatureCanvas(false);
+  if (state.signatureDataUrl) {
+    renderSignaturePreviewFromSaved();
+    updateSavedSignatureUi(true);
+  } else {
+    updateSavedSignatureUi(false);
+  }
   wireEvents();
   saveDraftState();
-  setStatus("Choose a PDF, enter your details, and draw your signature.");
+  setStatus("Choose a PDF, draw your signature, then add details.");
 }
 
 if (document.readyState === "loading") {
