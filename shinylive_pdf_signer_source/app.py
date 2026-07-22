@@ -134,14 +134,14 @@ app_ui = ui.page_fluid(
             id="exportActions",
         ),
         ui.div("", id="appStatus", class_="status-box", role="status", **{"aria-live": "polite"}),
-        ui.details(
+        ui.tags.details(
             ui.tags.summary("How to return it to the same email thread"),
-            ui.ol(
-                ui.li("Tap “Share or Save” and choose “Save to Files.”"),
-                ui.li("Return to Mail and open the original message."),
-                ui.li("Tap Reply, then attach the signed PDF from Files."),
+            ui.tags.ol(
+                ui.tags.li("Tap “Share or Save” and choose “Save to Files.”"),
+                ui.tags.li("Return to Mail and open the original message."),
+                ui.tags.li("Tap Reply, then attach the signed PDF from Files."),
             ),
-            ui.p(
+            ui.tags.p(
                 "Choosing Mail in the share sheet starts a new draft. iPhone browsers cannot directly insert a file into an already-open reply thread.",
                 class_="muted",
             ),
